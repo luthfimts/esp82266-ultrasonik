@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Sensor Ultrasonik ESP32</title>
+    <!-- Memuat library MQTT.js via CDN -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            margin-top: 50px;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+            display: inline-block;
+            min-width: 300px;
+        }
+        h2 { color: #333; }
+        #status {
+            font-weight: bold;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        .distance-box {
+            font-size: 48px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 20px 0;
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Monitor Jarak ESP32</h2>
+        <p id="status">Status: Menghubungkan ke broker...</p>
+        
+        <p>Pengukuran Jarak Real-Time:</p>
+        <div class="distance-box">
+            <span id="jarakValue">--</span> <span style="font-size: 24px;">cm</span>
+        </div>
+    </div>
+
+    <script>
+        const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+        const topic = 'esp32/luthfi/jarak'; // Topik khusus sensor jarak
+
+        const options = {
+            clientId: 'web_monitor_' + Math.random().toString(16).substring(2, 8),
+            clean: true,
+            connectTimeout: 4000
+        };
+
+        const client = mqtt.connect(brokerUrl, options);
+
+        client.on('connect', function () {
+            document.getElementById('status').innerText = 'Status: Terhubung & Memantau Sensor';
+            document.getElementById('status').style.color = 'green';
+            
+            // Berlangganan (subscribe) ke topik data jarak dari ESP32
+            client.subscribe(topic, function (err) {
+                if (!err) {
+                    console.log('Berhasil subscribe ke topik jarak');
+                }
+            });
+        });
+
+        client.on('error', function (error) {
+            document.getElementById('status').innerText = 'Status: Gagal Terhubung!';
+            document.getElementById('status').style.color = 'red';
+        });
+
+        // Menerima pesan yang dikirim oleh ESP32
+        client.on('message', function (incomingTopic, payload) {
+            if (incomingTopic === topic) {
+                let jarakStr = payload.toString();
+                document.getElementById('jarakValue').innerText = jarakStr;
+            }
+        });
+    </script>
+
+</body>
+</html>
